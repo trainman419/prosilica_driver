@@ -1,0 +1,54 @@
+<!--
+Prosilica in streaming mode, using nodelets
+-->
+
+<launch>
+  <!-- Namespace to publish in -->
+  <arg name="camera" default="prosilica" />
+
+  <arg name="guid" default="" />
+  <arg name="ip_address" default="10.68.0.20" />
+
+  <!-- Trigger mode: 'streaming' or 'polled' -->
+  <arg name="trigger_mode" default="streaming" />
+
+  <!-- tf frame id associated with this camera -->
+  <arg name="frame_id" default="$(arg camera)_optical_frame" />
+
+  <!-- nodelet manager -->
+  <group ns="$(arg camera)">
+    <node pkg="nodelet" type="nodelet" name="prosilica_nodelet_manager"
+          args="manager" output="screen"/>
+  </group>
+
+  <!-- prosilica nodelet -->
+  <node pkg="nodelet" type="nodelet" name="prosilica_nodelet"
+        args="load prosilica_camera/driver prosilica/prosilica_nodelet_manager"
+        output="screen">
+    <remap from="camera" to="$(arg camera)" />
+
+    <param name="guid" type="str" value="$(arg guid)" />
+    <param name="ip_address" type="str" value="$(arg ip_address)" />
+    <param name="trigger_mode" value="$(arg trigger_mode)" />
+    <param name="frame_id" value="$(arg frame_id)" />
+  </node>
+
+  <!-- image_proc nodelet -->
+  <group ns="$(arg camera)">
+    <node pkg="nodelet" type="nodelet" name="prosilica_debayer"
+          args="load image_proc/debayer prosilica_nodelet_manager"
+          output="screen"/>
+
+    <node pkg="nodelet" type="nodelet" name="prosilica_recticy_mono"
+          args="load image_proc/rectify prosilica_nodelet_manager"
+          output="screen"/>
+
+    <node pkg="nodelet" type="nodelet" name="prosilica_recticy_color"
+          args="load image_proc/rectify prosilica_nodelet_manager"
+          output="screen">
+          <remap from="image_mono" to="image_color"/>
+          <remap from="image_rect" to="image_rect_color"/>
+    </node>
+  </group>
+
+</launch>
